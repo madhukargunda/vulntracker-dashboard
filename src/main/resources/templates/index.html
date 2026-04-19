@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Vulnerability Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+
+<header class="app-header">
+    <div class="header-content">
+        <h1>🛡️ Vulnerability Dashboard</h1>
+        <p>Sysdig Docker Image Scan Reports Analysis</p>
+    </div>
+</header>
+
+<div class="app-container">
+
+    <!-- Version Selector -->
+    <section class="controls-card">
+        <div class="controls-row">
+            <div class="control-group">
+                <label for="versionSelect">📁 Select Version:</label>
+                <select id="versionSelect" onchange="onVersionChange(this.value)">
+                    <option value="">-- Loading versions... --</option>
+                </select>
+                <span id="versionCount" class="version-count"></span>
+            </div>
+            <div id="loadingIndicator" class="loading-indicator hidden">
+                <div class="spinner"></div>
+                <span>Loading...</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Error Banner -->
+    <div id="errorBanner" class="error-banner hidden"></div>
+
+    <!-- Version Comparison -->
+    <section id="comparisonSection" class="section hidden">
+        <h2 class="section-title">⚖️ Version Comparison Summary</h2>
+        <div class="filter-bar">
+            <div class="control-group">
+                <label for="currentVersionSelect">Current (Prod) Version:</label>
+                <select id="currentVersionSelect"></select>
+            </div>
+            <div class="control-group">
+                <label for="newerVersionSelect">Newer Version:</label>
+                <select id="newerVersionSelect"></select>
+            </div>
+            <button id="compareBtn" class="compare-btn" onclick="onCompareVersions()">Compare</button>
+            <div class="result-count">
+                Rows: <span id="comparisonRowCount">0</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="vuln-table comparison-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Service</th>
+                        <th colspan="4" id="currentHeader">Current</th>
+                        <th colspan="4" id="newerHeader">Newer</th>
+                        <th rowspan="2">Delta Total</th>
+                    </tr>
+                    <tr>
+                        <th>Critical</th>
+                        <th>High</th>
+                        <th>Medium</th>
+                        <th>Low</th>
+                        <th>Critical</th>
+                        <th>High</th>
+                        <th>Medium</th>
+                        <th>Low</th>
+                    </tr>
+                </thead>
+                <tbody id="comparisonTableBody"></tbody>
+            </table>
+        </div>
+        <div id="noComparisonResults" class="no-results hidden">No comparison data available.</div>
+    </section>
+
+    <!-- Unique Summary -->
+    <section id="uniqueSummarySection" class="section hidden">
+        <h2 class="section-title">🔍 Unique Vulnerabilities Summary</h2>
+        <div class="summary-grid" id="uniqueSummaryGrid">
+            <!-- Filled by JS -->
+        </div>
+    </section>
+
+    <!-- Dashboard Widgets -->
+    <section id="dashboardSection" class="section hidden">
+        <h2 class="section-title">📊 Image Vulnerability Dashboard</h2>
+        <p class="section-subtitle" id="imageCountLabel"></p>
+        <div class="widget-grid" id="widgetGrid">
+            <!-- Filled by JS -->
+        </div>
+    </section>
+
+    <!-- Grouped Vulnerabilities -->
+    <section id="groupedSection" class="section hidden">
+        <h2 class="section-title">🔬 Vulnerability Analysis</h2>
+
+        <div class="filter-bar">
+            <div class="control-group">
+                <label for="groupBySelect">Group by:</label>
+                <select id="groupBySelect" onchange="onGroupByChange()">
+                    <option value="cve">CVE ID</option>
+                    <option value="package">Package Name</option>
+                    <option value="type">Package Type</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="severityFilter">Filter by Severity:</label>
+                <select id="severityFilter" onchange="onGroupByChange()">
+                    <option value="">All</option>
+                    <option value="CRITICAL">Critical</option>
+                    <option value="HIGH">High</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="LOW">Low</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="searchInput">Search:</label>
+                <input type="text" id="searchInput" placeholder="Filter results..." oninput="onSearch()" class="search-input"/>
+            </div>
+            <div class="result-count">
+                Showing <span id="resultCount">0</span> results
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="vuln-table" id="vulnTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('groupKey')" class="sortable">
+                            Item <span class="sort-icon" id="sort-groupKey">⇅</span>
+                        </th>
+                        <th onclick="sortTable('occurrences')" class="sortable">
+                            Occurrences <span class="sort-icon" id="sort-occurrences">⇅</span>
+                        </th>
+                        <th onclick="sortTable('maxScore')" class="sortable">
+                            Max Score <span class="sort-icon" id="sort-maxScore">⇅</span>
+                        </th>
+                        <th>Severity</th>
+                        <th>Impacted Images</th>
+                    </tr>
+                </thead>
+                <tbody id="vulnTableBody">
+                    <!-- Filled by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="noResults" class="no-results hidden">No vulnerabilities found for the current filters.</div>
+    </section>
+
+</div>
+
+<footer class="app-footer">
+    <p>Vulnerability Dashboard &nbsp;|&nbsp; Powered by Spring Boot + Thymeleaf</p>
+</footer>
+
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>
+

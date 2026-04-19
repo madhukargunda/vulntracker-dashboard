@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: vulnerability-report
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
+
+# Vulnerability report configuration
+app:
+  reports:
+    root-path: ${GENAI_ROOT_PATH:${user.dir}/GENAI}
