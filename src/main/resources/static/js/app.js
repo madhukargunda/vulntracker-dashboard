@@ -12,6 +12,7 @@ let filteredGrouped  = [];       // after client-side search
 let sortField        = 'occurrences';
 let sortDir          = 'desc';   // 'asc' | 'desc'
 let availableVersions = [];
+let dashboardSections = ['web', 'backend', 'connectors', 'infra', 'unassigned'];
 
 /* ============================================================
    Initialisation
@@ -25,7 +26,15 @@ document.addEventListener('DOMContentLoaded', function () {
    ============================================================ */
 async function loadVersions() {
     try {
-        const versions = await apiFetch('/api/versions');
+        const [versions, sections] = await Promise.all([
+            apiFetch('/api/versions'),
+            apiFetch('/api/dashboard/sections').catch(function () { return null; })
+        ]);
+
+        if (sections && Array.isArray(sections) && sections.length > 0) {
+            dashboardSections = sections.map(normalizeSectionName);
+        }
+
         availableVersions = versions || [];
         const select = document.getElementById('versionSelect');
         select.innerHTML = '';
@@ -274,25 +283,112 @@ function renderUniqueSummary(data) {
    Render: Image Widgets
    ============================================================ */
 function renderWidgets(images) {
-    const grid = document.getElementById('widgetGrid');
-    grid.innerHTML = '';
+    const container = document.getElementById('dashboardComponents');
+    container.innerHTML = '';
 
     if (!images || images.length === 0) {
-        grid.innerHTML = '<p style="color:#999;padding:20px;">No images found.</p>';
+        container.innerHTML = '<p style="color:#999;padding:20px;">No images found.</p>';
         return;
     }
 
-    images.forEach(function (img) {
-        grid.appendChild(buildWidget(img));
+    const groupedBySection = groupImagesByComponent(images);
+    const orderedSections = getOrderedSections(groupedBySection);
+
+    orderedSections.forEach(function (sectionName) {
+        const sectionImages = groupedBySection[sectionName] || [];
+
+        const section = document.createElement('div');
+        section.className = 'component-section';
+
+        const header = document.createElement('div');
+        header.className = 'component-section-header';
+        header.innerHTML =
+            '<h3 class="component-section-title">' + escHtml(formatSectionTitle(sectionName)) + '</h3>' +
+            '<span class="component-count">' + sectionImages.length + ' image' + (sectionImages.length !== 1 ? 's' : '') + '</span>';
+        section.appendChild(header);
+
+        if (sectionImages.length === 0) {
+            const emptyText = document.createElement('p');
+            emptyText.className = 'component-empty';
+            emptyText.textContent = 'No images mapped to this component.';
+            section.appendChild(emptyText);
+            container.appendChild(section);
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'widget-grid';
+        sectionImages.forEach(function (img) {
+            grid.appendChild(buildWidget(img));
+        });
+
+        section.appendChild(grid);
+        container.appendChild(section);
     });
+}
+
+function groupImagesByComponent(images) {
+    return (images || []).reduce(function (acc, img) {
+        const sectionName = normalizeSectionName(img.componentType);
+        if (!acc[sectionName]) {
+            acc[sectionName] = [];
+        }
+        acc[sectionName].push(img);
+        return acc;
+    }, {});
+}
+
+function getOrderedSections(groupedBySection) {
+    const configured = (dashboardSections || []).map(normalizeSectionName);
+    const fromData = Object.keys(groupedBySection || {}).map(normalizeSectionName);
+    const ordered = [];
+
+    configured.forEach(function (sectionName) {
+        if (!ordered.includes(sectionName)) {
+            ordered.push(sectionName);
+        }
+    });
+
+    fromData.forEach(function (sectionName) {
+        if (!ordered.includes(sectionName)) {
+            ordered.push(sectionName);
+        }
+    });
+
+    return ordered;
+}
+
+function normalizeSectionName(sectionName) {
+    if (!sectionName || !String(sectionName).trim()) {
+        return 'unassigned';
+    }
+    return String(sectionName).trim().toLowerCase();
+}
+
+function formatSectionTitle(sectionName) {
+    return normalizeSectionName(sectionName)
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, function (char) { return char.toUpperCase(); });
 }
 
 function buildWidget(img) {
     const total = img.totalVulnerabilities || 0;
+    const baseOs = (img.baseOs && String(img.baseOs).trim() && String(img.baseOs).toLowerCase() !== 'undefined')
+        ? img.baseOs
+        : 'Unknown';
 
     function pct(n) {
         return total > 0 ? ((n / total) * 100).toFixed(1) + '%' : '0%';
     }
+
+    const baseImageName = (img.baseImageName && String(img.baseImageName).trim())
+        ? String(img.baseImageName).trim()
+        : null;
+    const inheritedCount = Number(img.baseImageInheritedVulnerabilityCount || 0);
+    const inheritedCves = Array.isArray(img.baseImageInheritedCveIds) ? img.baseImageInheritedCveIds : [];
+    const safeImageName = escHtml(img.imageName);
+    const safeBaseImageName = baseImageName ? escHtml(baseImageName) : 'Not configured';
+    const cvesJson = JSON.stringify(inheritedCves).replace(/'/g, '&apos;');
 
     const card = document.createElement('div');
     card.className = 'image-widget';
@@ -302,7 +398,7 @@ function buildWidget(img) {
         '  <div class="widget-image-name">' + escHtml(img.imageName) + '</div>' +
         '  <div class="widget-meta">' +
         '    <span>v' + escHtml(img.imageVersion) + '</span>' +
-        '    <span>' + escHtml(img.baseOs) + '</span>' +
+        '    <span>' + escHtml(baseOs) + '</span>' +
         '  </div>' +
         '</div>' +
         '<div class="widget-body">' +
@@ -322,10 +418,81 @@ function buildWidget(img) {
         '    <div class="sev-bar-segment medium"   style="width:' + pct(img.mediumCount)   + '" title="Medium: '   + img.mediumCount   + '"></div>' +
         '    <div class="sev-bar-segment low"      style="width:' + pct(img.lowCount)      + '" title="Low: '      + img.lowCount      + '"></div>' +
         '  </div>' +
+        '  <div class="base-image-summary">' +
+        '    <div class="widget-info-row">' +
+        '      <span class="widget-info-label">Base Image</span>' +
+        '      <span class="base-image-name" title="' + safeBaseImageName + '">' + safeBaseImageName + '</span>' +
+        '    </div>' +
+        '    <div class="widget-info-row">' +
+        '      <span class="widget-info-label">Inherited CVEs</span>' +
+        (inheritedCount > 0
+            ? '<button class="base-cves-btn" onclick=\'openBaseCvesModal("' + safeImageName + '","' + safeBaseImageName + '",' + cvesJson + ')\'>' +
+              inheritedCount + ' CVEs &rsaquo;</button>'
+            : '<span class="base-image-count base-image-count-zero">0</span>') +
+        '    </div>' +
+        '  </div>' +
         '</div>';
 
     return card;
 }
+
+function renderBaseImageCves(cveIds) {
+    if (!cveIds || cveIds.length === 0) {
+        return 'No matching CVEs from base image';
+    }
+
+    const MAX_INLINE = 5;
+    if (cveIds.length <= MAX_INLINE) {
+        return cveIds.join(', ');
+    }
+
+    return cveIds.slice(0, MAX_INLINE).join(', ') + ' +' + (cveIds.length - MAX_INLINE) + ' more';
+}
+
+ /* ============================================================
+    Base Image CVEs Modal
+    ============================================================ */
+ function openBaseCvesModal(imageName, baseImageName, cveIds) {
+     if (!Array.isArray(cveIds)) cveIds = [];
+
+     document.getElementById('baseCvesModalTitle').textContent =
+         'Base Image Inherited CVEs — ' + imageName;
+     document.getElementById('baseCvesModalSubtitle').textContent =
+         'Base image: ' + baseImageName;
+     document.getElementById('baseCvesCount').textContent =
+         cveIds.length + ' CVE' + (cveIds.length !== 1 ? 's' : '') + ' inherited from base image';
+
+     const listEl = document.getElementById('baseCvesList');
+     listEl.innerHTML = '';
+
+     if (cveIds.length === 0) {
+         listEl.innerHTML = '<p class="base-cves-empty">No CVEs inherited from base image.</p>';
+     } else {
+         const grid = document.createElement('div');
+         grid.className = 'base-cves-grid';
+         cveIds.slice().sort().forEach(function (cve) {
+             const badge = document.createElement('span');
+             badge.className = 'base-cve-badge';
+             badge.textContent = cve;
+             badge.title = cve;
+             grid.appendChild(badge);
+         });
+         listEl.appendChild(grid);
+     }
+
+     document.getElementById('baseCvesModal').classList.remove('hidden');
+ }
+
+ function closeBaseCvesModal() {
+     document.getElementById('baseCvesModal').classList.add('hidden');
+ }
+
+ window.addEventListener('click', function (event) {
+     const baseCvesModal = document.getElementById('baseCvesModal');
+     if (event.target === baseCvesModal) {
+         closeBaseCvesModal();
+     }
+ });
 
 /* ============================================================
    Render: Grouped Vulnerabilities Table
@@ -356,29 +523,29 @@ function renderGroupedTable(data) {
     // Apply current sort
     const sorted = sortData(data, sortField, sortDir);
 
-    sorted.forEach(function (item) {
-        const sev = (item.severity || 'low').toLowerCase();
-        const images = item.impactedImages || [];
-        const MAX_SHOWN = 3;
+     sorted.forEach(function (item) {
+         const sev = (item.severity || 'low').toLowerCase();
+         const images = item.impactedImages || [];
+         const MAX_SHOWN = 3;
 
-        let imageTags = images.slice(0, MAX_SHOWN)
-            .map(function (img) {
-                return '<span class="image-tag" title="' + escHtml(img) + '">' + escHtml(img) + '</span>';
-            }).join('');
+         let imageTags = images.slice(0, MAX_SHOWN)
+             .map(function (img) {
+                 return '<span class="image-tag" title="' + escHtml(img) + '">' + escHtml(img) + '</span>';
+             }).join('');
 
-        if (images.length > MAX_SHOWN) {
-            imageTags += '<span class="image-tag more">+' + (images.length - MAX_SHOWN) + ' more</span>';
-        }
+         if (images.length > MAX_SHOWN) {
+             imageTags += '<span class="image-tag more" onclick="openImagesModal(\'' + escHtml(item.groupKey).replace(/'/g, '&apos;') + '\', ' + JSON.stringify(images).replace(/'/g, '&apos;') + ')" style="cursor: pointer;">+' + (images.length - MAX_SHOWN) + ' more</span>';
+         }
 
-        const tr = document.createElement('tr');
-        tr.innerHTML =
-            '<td><div class="item-code">' + escHtml(item.groupKey) + '</div></td>' +
-            '<td><span class="occurrences-badge">' + item.occurrences + '</span></td>' +
-            '<td><span class="score-pill ' + sev + '">' + item.maxScore.toFixed(1) + '</span></td>' +
-            '<td><span class="sev-badge ' + sev + '">' + escHtml(item.severity) + '</span></td>' +
-            '<td><div class="images-list">' + imageTags + '</div></td>';
-        tbody.appendChild(tr);
-    });
+         const tr = document.createElement('tr');
+         tr.innerHTML =
+             '<td><div class="item-code">' + escHtml(item.groupKey) + '</div></td>' +
+             '<td><span class="occurrences-badge">' + item.occurrences + '</span></td>' +
+             '<td><span class="score-pill ' + sev + '">' + item.maxScore.toFixed(1) + '</span></td>' +
+             '<td><span class="sev-badge ' + sev + '">' + escHtml(item.severity) + '</span></td>' +
+             '<td><div class="images-list">' + imageTags + '</div></td>';
+         tbody.appendChild(tr);
+     });
 }
 
 /* ============================================================
@@ -464,11 +631,56 @@ function hideError() {
 }
 
 function escHtml(str) {
-    if (!str && str !== 0) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
+     if (!str && str !== 0) return '';
+     return String(str)
+         .replace(/&/g, '&amp;')
+         .replace(/</g, '&lt;')
+         .replace(/>/g, '&gt;')
+         .replace(/"/g, '&quot;');
+ }
 
+ /* ============================================================
+    Modal for Impacted Images
+    ============================================================ */
+ function openImagesModal(groupKey, images) {
+     if (!Array.isArray(images)) {
+         images = [];
+     }
+
+     document.getElementById('modalTitle').textContent = 'Impacted Images for: ' + escHtml(groupKey);
+
+     const imagesList = document.getElementById('modalImagesList');
+     imagesList.innerHTML = '';
+
+     if (images.length === 0) {
+         imagesList.innerHTML = '<p style="color: #999;">No images found.</p>';
+     } else {
+         const ul = document.createElement('ul');
+         ul.className = 'images-modal-list';
+
+         images.forEach(function (img) {
+             const li = document.createElement('li');
+             li.className = 'images-modal-item';
+             li.textContent = img;
+             ul.appendChild(li);
+         });
+
+         imagesList.appendChild(ul);
+     }
+
+     const modal = document.getElementById('imagesModal');
+     modal.classList.remove('hidden');
+ }
+
+ function closeImagesModal() {
+     const modal = document.getElementById('imagesModal');
+     modal.classList.add('hidden');
+ }
+
+ // Close modal when clicking outside of it
+ window.addEventListener('click', function (event) {
+     const modal = document.getElementById('imagesModal');
+     if (event.target === modal) {
+         closeImagesModal();
+     }
+ });

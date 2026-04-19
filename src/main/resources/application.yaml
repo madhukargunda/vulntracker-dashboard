@@ -10,3 +10,125 @@ spring:
 app:
   reports:
     root-path: ${GENAI_ROOT_PATH:${user.dir}/GENAI}
+    download:
+      enabled: ${AUTO_DOWNLOAD_ENABLED:true}
+      base-url: "http://host:port/ui/path"
+      api-token: "${ARTIFACTORY_API_TOKEN:}"
+      # All downloaded files are stored under this folder for the current run.
+      common-version: "2026.22.0"
+      # Explicit image -> versions mapping used for startup downloads from artifactory.
+      # The files are downloaded as <image>_<version>.csv and <image>_<version>.json.
+      # If an image has only one version, keep a single-item list.
+      image-version-history:
+        web-app-admin:
+          - 2026.22.0
+        web-app-chat:
+          - 2026.22.0
+        web-app-knowldege-upload:
+          - 2026.22.0
+        web-app-theme:
+          - 2026.22.0
+        ai-service-assistant-core:
+          - 2026.22.0
+        backend-service-chat:
+          - 2026.22.0
+        backend-service-ingestion:
+          - 2026.22.0
+        backend-service-ingestion-worker:
+          - 2026.22.0
+        backend-service-scope-management:
+          - 2026.22.0
+        backend-service-app-repository:
+          - 2026.22.0
+        backend-service-webhook-schedular:
+          - 2026.22.0
+        backend-service-webhook-worker:
+          - 2026.22.0
+        backend-service-event-socket:
+          - 2026.22.0
+        backend-service-client-insight-exporter:
+          - 2026.22.0
+        backend-service-configuration:
+          - 2026.22.0
+        agentic-ingestion:
+          - 2026.22.0
+        confluence-connector:
+          - 2026.22.0
+        sharepoint-connector:
+          - 2026.22.0
+        rabbitmq:
+          - 2026.22.0
+        qdrant:
+          - 2026.22.0
+        zitadel:
+          - 2026.22.0
+        kong:
+          - 2026.22.0
+        kubernetes-ingress-controller:
+          - 2026.22.0
+        azure-recognizer-layout:
+          - 2026.22.0
+      overwrite-existing: false
+      fail-fast: false
+      connect-timeout-seconds: 15
+      read-timeout-seconds: 60
+  dashboard:
+    # Map image/service names to a dashboard component bucket.
+    # Update these lists to control where each image card appears in the UI.
+    component-groups:
+      web:
+        - web-app-admin
+        - web-app-chat
+        - web-app-knowldege-upload
+        - web-app-theme
+      backend:
+        - ai-service-assistant-core
+        - backend-service-chat
+        - backend-service-ingestion
+        - backend-service-ingestion-worker
+        - backend-service-scope-management
+        - backend-service-app-repository
+        - backend-service-webhook-schedular
+        - backend-service-webhook-worker
+        - backend-service-event-socket
+        - backend-service-client-insight-exporter
+        - backend-service-configuration
+        - agentic-ingestion
+      connectors:
+        - confluence-connector
+        - sharepoint-connector
+      infra:
+        - rabbitmq
+        - qdrant
+        - zitadel
+        - kong
+        - kubernetes-ingress-controller
+        - azure-recognizer-layout
+    # For each image, configure the base image report name to compare CVEs against.
+    # If a mapped base report is missing, the app continues and shows inherited count as 0.
+    base-image-mappings:
+      web-app-admin: debian_13
+      web-app-chat: debian_13
+      web-app-knowldege-upload: debian_13
+      web-app-theme: debian_13
+      ai-service-assistant-core: debian_13
+      backend-service-chat: debian_13
+      backend-service-ingestion: debian_13
+      backend-service-ingestion-worker: debian_13
+      backend-service-scope-management: debian_13
+      backend-service-app-repository: debian_13
+      backend-service-webhook-schedular: debian_13
+      backend-service-webhook-worker: debian_13
+      backend-service-event-socket: debian_13
+      backend-service-client-insight-exporter: debian_13
+      backend-service-configuration: debian_13
+      agentic-ingestion: debian_13
+      confluence-connector: debian_13
+      sharepoint-connector: debian_13
+      rabbitmq: debian_13
+      qdrant: debian_13
+      zitadel: debian_13
+      kong: debian_13
+      kubernetes-ingress-controller: debian_13
+      azure-recognizer-layout: debian_13
+    default-component: unassigned

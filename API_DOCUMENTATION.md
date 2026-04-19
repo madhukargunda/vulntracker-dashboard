@@ -65,6 +65,9 @@ Returns vulnerability summaries for all Docker images in the specified version. 
     "imageName": "ai-service-assistant",
     "imageVersion": "2025.42.1",
     "baseOs": "debian:11",
+    "baseImageName": "ai-service-assistant-base:2025.42.1",
+    "baseImageInheritedVulnerabilityCount": 11,
+    "baseImageInheritedCveIds": ["CVE-2024-1111", "CVE-2024-2222"],
     "totalVulnerabilities": 45,
     "criticalCount": 2,
     "highCount": 8,
@@ -90,6 +93,9 @@ Returns vulnerability summaries for all Docker images in the specified version. 
 | imageName | string | Docker image name |
 | imageVersion | string | Docker image version |
 | baseOs | string | Base OS from JSON metadata (e.g., "debian:11") |
+| baseImageName | string | Resolved base image (`<name>:<version>`) or configured mapping name when report is missing |
+| baseImageInheritedVulnerabilityCount | number | Count of unique CVE IDs shared between image and its configured base image |
+| baseImageInheritedCveIds | string[] | Shared CVE IDs between image and base image |
 | totalVulnerabilities | number | Total count of vulnerabilities |
 | criticalCount | number | Count of CRITICAL severity vulnerabilities |
 | highCount | number | Count of HIGH severity vulnerabilities |
@@ -376,6 +382,65 @@ curl http://localhost:8080/api/2025.42/unique-summary
 # Get grouped vulnerabilities
 curl "http://localhost:8080/api/2025.42/group?by=cve&severity=CRITICAL"
 ```
+
+---
+
+## Report Source Configuration
+
+The application can now run in two modes:
+
+- **Manual mode** (`app.reports.download.enabled=false`): use files already present in local `GENAI/<version>` folders.
+- **Automatic mode** (`app.reports.download.enabled=true`): download report files from your artifact repository at startup.
+
+Expected artifact URL format:
+
+```text
+<base-url>/<repository>/<version>/<repository>_<version>.<ext>
+```
+
+For each configured repository + version, the app downloads:
+
+- `<repository>_<version>.csv`
+- `<repository>_<version>.json`
+
+Example `application.yaml` snippet:
+
+```yaml
+app:
+  reports:
+    root-path: /path/to/GENAI
+    download:
+      enabled: true
+      base-url: http://host:port/path
+      api-token: ${ARTIFACTORY_API_TOKEN}
+      token-header-name: Authorization
+      token-prefix: Bearer
+      common-version: 2026.32.0
+      common-versions:
+        - 2026.32.0
+      common-version-sections: []
+      image-version-history:
+        data-processor:
+          - 2026.40.7
+      overwrite-existing: false
+      fail-fast: false
+  dashboard:
+    component-groups:
+      web:
+        - frontend-ui
+      connectors:
+        - data-processor
+```
+
+How it resolves versions:
+
+- All downloaded files are saved to `GENAI/<common-version>/` for that run.
+- By default, images are resolved from all `app.dashboard.component-groups` and use `common-versions`.
+- `common-version-sections` can limit common-version downloads to specific dashboard sections.
+- `image-version-history` overrides common versions for specific images.
+- Existing `repositories` + `versions` config is still supported for backward compatibility.
+
+If `fail-fast=true`, startup fails when any download/configuration error occurs.
 
 ---
 

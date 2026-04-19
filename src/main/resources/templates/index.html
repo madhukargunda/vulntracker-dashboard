@@ -93,7 +93,7 @@
     <section id="dashboardSection" class="section hidden">
         <h2 class="section-title">📊 Image Vulnerability Dashboard</h2>
         <p class="section-subtitle" id="imageCountLabel"></p>
-        <div class="widget-grid" id="widgetGrid">
+        <div id="dashboardComponents">
             <!-- Filled by JS -->
         </div>
     </section>
@@ -153,15 +153,55 @@
             </table>
         </div>
         <div id="noResults" class="no-results hidden">No vulnerabilities found for the current filters.</div>
-    </section>
+     </section>
 
-</div>
+ </div>
 
-<footer class="app-footer">
-    <p>Vulnerability Dashboard &nbsp;|&nbsp; Powered by Spring Boot + Thymeleaf</p>
-</footer>
+ <!-- Modal for viewing all impacted images -->
+ <div id="imagesModal" class="modal hidden">
+     <div class="modal-content">
+         <div class="modal-header">
+             <h2 id="modalTitle">Impacted Images</h2>
+             <button class="modal-close-btn" onclick="closeImagesModal()">&times;</button>
+         </div>
+         <div class="modal-body">
+             <div id="modalImagesList" class="modal-images-list">
+                 <!-- Filled by JS -->
+             </div>
+         </div>
+         <div class="modal-footer">
+             <button class="modal-close-action-btn" onclick="closeImagesModal()">Close</button>
+         </div>
+     </div>
+ </div>
 
-<script th:src="@{/js/app.js}"></script>
-</body>
-</html>
+ <!-- Modal for viewing base image inherited CVE IDs -->
+ <div id="baseCvesModal" class="modal hidden">
+     <div class="modal-content modal-content-wide">
+         <div class="modal-header">
+             <div>
+                 <h2 id="baseCvesModalTitle">Base Image Inherited CVEs</h2>
+                 <p id="baseCvesModalSubtitle" class="modal-subtitle"></p>
+             </div>
+             <button class="modal-close-btn" onclick="closeBaseCvesModal()">&times;</button>
+         </div>
+         <div class="modal-body">
+             <div id="baseCvesList">
+                 <!-- Filled by JS -->
+             </div>
+         </div>
+         <div class="modal-footer">
+             <span id="baseCvesCount" class="modal-footer-count"></span>
+             <button class="modal-close-action-btn" onclick="closeBaseCvesModal()">Close</button>
+         </div>
+     </div>
+ </div>
+
+ <footer class="app-footer">
+     <p>Vulnerability Dashboard &nbsp;|&nbsp; Powered by Spring Boot + Thymeleaf</p>
+ </footer>
+
+ <script th:src="@{/js/app.js}"></script>
+ </body>
+ </html>
 
