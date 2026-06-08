@@ -384,11 +384,23 @@ function buildWidget(img) {
     const baseImageName = (img.baseImageName && String(img.baseImageName).trim())
         ? String(img.baseImageName).trim()
         : null;
-    const inheritedCount = Number(img.baseImageInheritedVulnerabilityCount || 0);
+    const inheritedCount    = Number(img.baseImageInheritedVulnerabilityCount || 0);
+    const inheritedCritical = Number(img.baseImageInheritedCriticalCount || 0);
+    const inheritedHigh     = Number(img.baseImageInheritedHighCount || 0);
+    const inheritedMedium   = Number(img.baseImageInheritedMediumCount || 0);
+    const inheritedLow      = Number(img.baseImageInheritedLowCount || 0);
     const inheritedCves = Array.isArray(img.baseImageInheritedCveIds) ? img.baseImageInheritedCveIds : [];
     const safeImageName = escHtml(img.imageName);
     const safeBaseImageName = baseImageName ? escHtml(baseImageName) : 'Not configured';
     const cvesJson = JSON.stringify(inheritedCves).replace(/'/g, '&apos;');
+
+    const hasBaseImage = !!baseImageName;
+    const hasInherited = inheritedCount > 0;
+
+    function inheritedBox(sev, label, count) {
+        const cls = 'inherited-sev-box ' + sev + (count === 0 ? ' zero' : '');
+        return '<div class="' + cls + '"><span class="inherited-sev-label">' + label + '</span><span class="inherited-sev-count">' + count + '</span></div>';
+    }
 
     const card = document.createElement('div');
     card.className = 'image-widget';
@@ -423,13 +435,22 @@ function buildWidget(img) {
         '      <span class="widget-info-label">Base Image</span>' +
         '      <span class="base-image-name" title="' + safeBaseImageName + '">' + safeBaseImageName + '</span>' +
         '    </div>' +
-        '    <div class="widget-info-row">' +
-        '      <span class="widget-info-label">Inherited CVEs</span>' +
-        (inheritedCount > 0
-            ? '<button class="base-cves-btn" onclick=\'openBaseCvesModal("' + safeImageName + '","' + safeBaseImageName + '",' + cvesJson + ')\'>' +
-              inheritedCount + ' CVEs &rsaquo;</button>'
-            : '<span class="base-image-count base-image-count-zero">0</span>') +
-        '    </div>' +
+        (hasBaseImage
+            ? '    <div class="inherited-section">' +
+              '      <div class="inherited-section-header">' +
+              '        <span class="inherited-section-title">Inherited from Base</span>' +
+              (hasInherited
+                  ? '        <button class="base-cves-btn" onclick=\'openBaseCvesModal("' + safeImageName + '","' + safeBaseImageName + '",' + cvesJson + ')\'>View ' + inheritedCount + ' CVEs &rsaquo;</button>'
+                  : '        <span class="inherited-none-label">None</span>') +
+              '      </div>' +
+              '      <div class="inherited-sev-boxes">' +
+              inheritedBox('critical', 'Critical', inheritedCritical) +
+              inheritedBox('high',     'High',     inheritedHigh) +
+              inheritedBox('medium',   'Medium',   inheritedMedium) +
+              inheritedBox('low',      'Low',      inheritedLow) +
+              '      </div>' +
+              '    </div>'
+            : '    <div class="widget-info-row"><span class="widget-info-label">Inherited CVEs</span><span class="base-image-count base-image-count-zero">N/A</span></div>') +
         '  </div>' +
         '</div>';
 

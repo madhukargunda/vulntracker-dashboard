@@ -578,6 +578,80 @@ body {
     gap: 8px;
 }
 
+/* ===========================
+   Inherited Severity Breakdown
+   =========================== */
+.inherited-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.inherited-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.inherited-section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #546e7a;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.inherited-none-label {
+    font-size: 0.82rem;
+    color: #9e9e9e;
+    font-weight: 600;
+}
+
+.inherited-sev-boxes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+}
+
+.inherited-sev-box {
+    border-radius: 5px;
+    padding: 5px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid transparent;
+}
+
+.inherited-sev-box.critical { background: #ffebee; border-color: #ef9a9a; }
+.inherited-sev-box.high     { background: #fff3e0; border-color: #ffcc80; }
+.inherited-sev-box.medium   { background: #fffde7; border-color: #ffe082; }
+.inherited-sev-box.low      { background: #e8f5e9; border-color: #a5d6a7; }
+
+.inherited-sev-box.zero { opacity: 0.45; }
+
+.inherited-sev-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.inherited-sev-box.critical .inherited-sev-label { color: #c62828; }
+.inherited-sev-box.high     .inherited-sev-label { color: #e65100; }
+.inherited-sev-box.medium   .inherited-sev-label { color: #f57f17; }
+.inherited-sev-box.low      .inherited-sev-label { color: #2e7d32; }
+
+.inherited-sev-count {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.inherited-sev-box.critical .inherited-sev-count { color: #c62828; }
+.inherited-sev-box.high     .inherited-sev-count { color: #e65100; }
+.inherited-sev-box.medium   .inherited-sev-count { color: #f57f17; }
+.inherited-sev-box.low      .inherited-sev-count { color: #2e7d32; }
+
 .base-image-name {
     max-width: 58%;
     text-align: right;
